@@ -10,10 +10,19 @@ const search = document.getElementById("search");
 const totalTasks = document.getElementById("totalTasks");
 const completedTasks = document.getElementById("completedTasks");
 const pendingTasks = document.getElementById("pendingTasks");
+
 const progress = document.getElementById("progress");
+const progressPercent = document.getElementById("progressPercent");
 
 const toast = document.getElementById("toast");
 const themeBtn = document.getElementById("themeBtn");
+
+const deleteModal = document.getElementById("deleteModal");
+const confirmDelete = document.getElementById("confirmDelete");
+const cancelDelete = document.getElementById("cancelDelete");
+
+let deleteId = null;
+let currentFilter = "all";
 
 function saveTasks() {
     localStorage.setItem("tasks", JSON.stringify(tasks));
@@ -26,6 +35,32 @@ function showToast(message) {
     setTimeout(() => {
         toast.classList.remove("show");
     }, 2000);
+}
+
+function updateGreeting() {
+
+    const greeting = document.getElementById("greeting");
+
+    const hour = new Date().getHours();
+
+    if (hour < 12) {
+
+        greeting.innerText = "Good Morning 🌞";
+
+    }
+
+    else if (hour < 18) {
+
+        greeting.innerText = "Good Afternoon ☀";
+
+    }
+
+    else {
+
+        greeting.innerText = "Good Evening 🌙";
+
+    }
+
 }
 
 function updateStats() {
@@ -42,30 +77,32 @@ function updateStats() {
 
     pendingTasks.innerText = pending;
 
-    let percentage = 0;
-
-    if(total > 0){
-        percentage = (completed / total) * 100;
-    }
+    let percentage = total === 0
+        ? 0
+        : Math.round((completed / total) * 100);
 
     progress.style.width = percentage + "%";
+
+    progressPercent.innerText = percentage + "%";
+
 }
 
 themeBtn.onclick = () => {
 
     document.body.classList.toggle("dark");
 
-    if(document.body.classList.contains("dark")){
+    if (document.body.classList.contains("dark")) {
 
-        localStorage.setItem("theme","dark");
+        localStorage.setItem("theme", "dark");
 
         themeBtn.innerHTML =
         '<i class="fa-solid fa-sun"></i>';
 
     }
-    else{
 
-        localStorage.setItem("theme","light");
+    else {
+
+        localStorage.setItem("theme", "light");
 
         themeBtn.innerHTML =
         '<i class="fa-solid fa-moon"></i>';
@@ -74,7 +111,7 @@ themeBtn.onclick = () => {
 
 };
 
-if(localStorage.getItem("theme")==="dark"){
+if (localStorage.getItem("theme") === "dark") {
 
     document.body.classList.add("dark");
 
@@ -82,15 +119,50 @@ if(localStorage.getItem("theme")==="dark"){
     '<i class="fa-solid fa-sun"></i>';
 
 }
+
+function isDuplicate(text) {
+
+    return tasks.some(task =>
+        task.text.toLowerCase() ===
+        text.toLowerCase()
+    );
+
+}
 function addTask() {
 
     const text = taskInput.value.trim();
 
-    if(text === ""){
+    if (text === "") {
 
         showToast("Please enter a task");
 
         return;
+
+    }
+
+    if (isDuplicate(text)) {
+
+        showToast("Task already exists");
+
+        return;
+
+    }
+
+    if (dueDate.value !== "") {
+
+        const today = new Date();
+
+        today.setHours(0, 0, 0, 0);
+
+        const selectedDate = new Date(dueDate.value);
+
+        if (selectedDate < today) {
+
+            showToast("Past date is not allowed");
+
+            return;
+
+        }
 
     }
 
@@ -116,7 +188,7 @@ function addTask() {
 
     saveTasks();
 
-    renderTasks();
+    applyCurrentFilter();
 
     taskInput.value = "";
 
@@ -126,19 +198,31 @@ function addTask() {
 
     priority.value = "Medium";
 
-    showToast("Task Added");
+    showToast("Task Added Successfully");
 
 }
 
-document.getElementById("addTask").addEventListener("click", addTask);
+document
+.getElementById("addTask")
+.addEventListener("click", addTask);
 
-function toggleTask(id){
+taskInput.addEventListener("keypress", (e) => {
 
-    tasks = tasks.map(task=>{
+    if (e.key === "Enter") {
 
-        if(task.id===id){
+        addTask();
 
-            task.completed=!task.completed;
+    }
+
+});
+
+function toggleTask(id) {
+
+    tasks = tasks.map(task => {
+
+        if (task.id === id) {
+
+            task.completed = !task.completed;
 
         }
 
@@ -148,39 +232,159 @@ function toggleTask(id){
 
     saveTasks();
 
-    renderTasks();
+    applyCurrentFilter();
 
 }
 
-function deleteTask(id){
+function editTask(id) {
 
-    tasks = tasks.filter(task=>task.id!==id);
+    const task = tasks.find(task => task.id === id);
+
+    const updated = prompt("Edit Task", task.text);
+
+    if (updated === null) {
+
+        return;
+
+    }
+
+    if (updated.trim() === "") {
+
+        showToast("Task cannot be empty");
+
+        return;
+
+    }
+
+    const duplicate = tasks.some(t =>
+
+        t.id !== id &&
+
+        t.text.toLowerCase() === updated.trim().toLowerCase()
+
+    );
+
+    if (duplicate) {
+
+        showToast("Task already exists");
+
+        return;
+
+    }
+
+    task.text = updated.trim();
 
     saveTasks();
 
-    renderTasks();
+    applyCurrentFilter();
 
-    showToast("Task Deleted");
+    showToast("Task Updated");
 
 }
 
-function editTask(id){
+function openDeleteModal(id) {
 
-    const task = tasks.find(task=>task.id===id);
+    deleteId = id;
 
-    const updated = prompt("Edit Task",task.text);
+    deleteModal.classList.add("show");
 
-    if(updated!==null && updated.trim()!==""){
+}
 
-        task.text = updated.trim();
+cancelDelete.onclick = () => {
 
-        saveTasks();
+    deleteModal.classList.remove("show");
 
-        renderTasks();
+};
 
-        showToast("Task Updated");
+confirmDelete.onclick = () => {
+
+    tasks = tasks.filter(task => task.id !== deleteId);
+
+    saveTasks();
+
+    applyCurrentFilter();
+
+    deleteModal.classList.remove("show");
+
+    showToast("Task Deleted");
+
+};
+
+function pinTask(id) {
+
+    tasks = tasks.map(task => {
+
+        if (task.id === id) {
+
+            task.pinned = !task.pinned;
+
+        }
+
+        return task;
+
+    });
+
+    tasks.sort((a, b) => b.pinned - a.pinned);
+
+    saveTasks();
+
+    applyCurrentFilter();
+
+    showToast("Task Updated");
+
+}
+function getTaskStatus(task) {
+
+    if (task.date === "") {
+
+        return {
+            className: "",
+            badge: ""
+        };
 
     }
+
+    const today = new Date();
+
+    today.setHours(0,0,0,0);
+
+    const due = new Date(task.date);
+
+    due.setHours(0,0,0,0);
+
+    const diff = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+
+    if (diff < 0) {
+
+        return {
+
+            className: "overdue",
+
+            badge: '<span class="status-badge status-overdue">Overdue</span>'
+
+        };
+
+    }
+
+    if (diff === 0) {
+
+        return {
+
+            className: "today",
+
+            badge: '<span class="status-badge status-today">Due Today</span>'
+
+        };
+
+    }
+
+    return {
+
+        className: "future",
+
+        badge: `<span class="status-badge status-future">${diff} Day${diff>1?"s":""} Left</span>`
+
+    };
 
 }
 
@@ -190,15 +394,17 @@ function renderTasks(list = tasks){
 
     if(list.length===0){
 
-        taskList.innerHTML =
+        taskList.innerHTML = `
 
-        `<div class="empty">
+        <div class="empty">
 
-        <h2>No Tasks Found</h2>
+            <h2>No Tasks Found</h2>
 
-        <p>Add a new task to get started 🚀</p>
+            <p>Add a new task to get started 🚀</p>
 
-        </div>`;
+        </div>
+
+        `;
 
         updateStats();
 
@@ -208,19 +414,23 @@ function renderTasks(list = tasks){
 
     list.forEach(task=>{
 
+        const status = getTaskStatus(task);
+
         taskList.innerHTML += `
 
-        <li class="task ${task.completed ? "completed" : ""}">
+        <li class="task ${task.completed ? "completed":""} ${status.className}">
 
             <div class="task-left">
 
                 <input
 
-                type="checkbox"
+                    type="checkbox"
 
-                ${task.completed ? "checked":""}
+                    ${task.completed ? "checked":""}
 
-                onchange="toggleTask(${task.id})">
+                    onchange="toggleTask(${task.id})"
+
+                >
 
                 <div class="task-content">
 
@@ -228,19 +438,21 @@ function renderTasks(list = tasks){
 
                     <p>
 
-                    📅 ${task.date || "No Date"}
+                        📅 ${task.date || "No Date"}
 
-                    &nbsp;&nbsp;
+                        &nbsp;&nbsp;
 
-                    ⏰ ${task.time || "--"}
+                        ⏰ ${task.time || "--"}
 
                     </p>
 
                     <span class="priority ${task.priority.toLowerCase()}">
 
-                    ${task.priority}
+                        ${task.priority}
 
                     </span>
+
+                    ${status.badge}
 
                 </div>
 
@@ -250,21 +462,43 @@ function renderTasks(list = tasks){
 
                 <button
 
-                class="edit-btn"
+                    class="pin-btn"
 
-                onclick="editTask(${task.id})">
+                    onclick="pinTask(${task.id})"
 
-                <i class="fa-solid fa-pen"></i>
+                    title="Pin Task"
+
+                >
+
+                    <i class="fa-solid fa-thumbtack"></i>
 
                 </button>
 
                 <button
 
-                class="delete-btn"
+                    class="edit-btn"
 
-                onclick="deleteTask(${task.id})">
+                    onclick="editTask(${task.id})"
 
-                <i class="fa-solid fa-trash"></i>
+                    title="Edit"
+
+                >
+
+                    <i class="fa-solid fa-pen"></i>
+
+                </button>
+
+                <button
+
+                    class="delete-btn"
+
+                    onclick="openDeleteModal(${task.id})"
+
+                    title="Delete"
+
+                >
+
+                    <i class="fa-solid fa-trash"></i>
 
                 </button>
 
@@ -278,12 +512,14 @@ function renderTasks(list = tasks){
 
     updateStats();
 
+    checkAllCompleted();
+
 }
-function searchTasks(){
+function searchTasks() {
 
     const value = search.value.toLowerCase();
 
-    const filtered = tasks.filter(task=>
+    const filtered = tasks.filter(task =>
         task.text.toLowerCase().includes(value)
     );
 
@@ -291,113 +527,114 @@ function searchTasks(){
 
 }
 
-search.addEventListener("keyup",searchTasks);
+search.addEventListener("keyup", searchTasks);
 
-document.querySelectorAll(".filters button").forEach(button=>{
+function applyCurrentFilter() {
 
-    button.addEventListener("click",()=>{
+    let filtered = [...tasks];
 
-        const filter = button.dataset.filter;
+    if (currentFilter === "completed") {
 
-        if(filter==="all"){
+        filtered = filtered.filter(task => task.completed);
 
-            renderTasks(tasks);
+    }
 
-        }
+    else if (currentFilter === "pending") {
 
-        else if(filter==="completed"){
+        filtered = filtered.filter(task => !task.completed);
 
-            renderTasks(tasks.filter(task=>task.completed));
+    }
 
-        }
-
-        else if(filter==="pending"){
-
-            renderTasks(tasks.filter(task=>!task.completed));
-
-        }
-
-    });
-
-});
-
-function pinTask(id){
-
-    tasks = tasks.map(task=>{
-
-        if(task.id===id){
-
-            task.pinned = !task.pinned;
-
-        }
-
-        return task;
-
-    });
-
-    tasks.sort((a,b)=>b.pinned-a.pinned);
-
-    saveTasks();
-
-    renderTasks();
+    renderTasks(filtered);
 
 }
 
-document.getElementById("sortPriority").addEventListener("click",()=>{
+document.querySelectorAll(".filters button").forEach(button => {
 
-    const order={
+    if (button.dataset.filter) {
 
-        High:3,
+        button.addEventListener("click", () => {
 
-        Medium:2,
+            document
+            .querySelectorAll(".filters button")
+            .forEach(btn => btn.classList.remove("active-filter"));
 
-        Low:1
+            button.classList.add("active-filter");
+
+            currentFilter = button.dataset.filter;
+
+            applyCurrentFilter();
+
+        });
+
+    }
+
+});
+
+document
+.getElementById("sortPriority")
+.addEventListener("click", () => {
+
+    const order = {
+
+        High: 3,
+
+        Medium: 2,
+
+        Low: 1
 
     };
 
-    tasks.sort((a,b)=>
+    tasks.sort((a, b) => {
 
-        order[b.priority]-order[a.priority]
+        if (b.pinned !== a.pinned) {
 
-    );
+            return b.pinned - a.pinned;
+
+        }
+
+        return order[b.priority] - order[a.priority];
+
+    });
 
     saveTasks();
 
-    renderTasks();
+    applyCurrentFilter();
 
     showToast("Sorted by Priority");
 
 });
 
-document.getElementById("sortDate").addEventListener("click",()=>{
+document
+.getElementById("sortDate")
+.addEventListener("click", () => {
 
-    tasks.sort((a,b)=>{
+    tasks.sort((a, b) => {
 
-        if(a.date==="" && b.date==="") return 0;
+        if (a.date === "" && b.date === "") return 0;
 
-        if(a.date==="") return 1;
+        if (a.date === "") return 1;
 
-        if(b.date==="") return -1;
+        if (b.date === "") return -1;
 
-        return new Date(a.date)-new Date(b.date);
+        return new Date(a.date) - new Date(b.date);
 
     });
 
     saveTasks();
 
-    renderTasks();
+    applyCurrentFilter();
 
     showToast("Sorted by Date");
 
 });
+function clearCompleted() {
 
-function clearCompleted(){
-
-    tasks = tasks.filter(task=>!task.completed);
+    tasks = tasks.filter(task => !task.completed);
 
     saveTasks();
 
-    renderTasks();
+    applyCurrentFilter();
 
     showToast("Completed Tasks Cleared");
 
@@ -405,30 +642,21 @@ function clearCompleted(){
 
 document
 .getElementById("clearCompleted")
-.addEventListener("click",clearCompleted);
-taskInput.addEventListener("keypress",(e)=>{
+.addEventListener("click", clearCompleted);
 
-    if(e.key==="Enter"){
+function checkAllCompleted() {
 
-        addTask();
-
-    }
-
-});
-
-function checkAllCompleted(){
-
-    if(tasks.length===0){
+    if (tasks.length === 0) {
 
         return;
 
     }
 
-    const completed=tasks.every(task=>task.completed);
+    const completed = tasks.every(task => task.completed);
 
-    if(completed){
+    if (completed) {
 
-        showToast("🎉 Congratulations! All tasks completed!");
+        showToast("🎉 Congratulations! All Tasks Completed!");
 
         confetti();
 
@@ -436,69 +664,167 @@ function checkAllCompleted(){
 
 }
 
-function confetti(){
+function confetti() {
 
-    for(let i=0;i<150;i++){
+    for (let i = 0; i < 150; i++) {
 
-        const piece=document.createElement("div");
+        const piece = document.createElement("div");
 
-        piece.style.position="fixed";
+        piece.style.position = "fixed";
 
-        piece.style.width="10px";
+        piece.style.width = "10px";
 
-        piece.style.height="10px";
+        piece.style.height = "10px";
 
-        piece.style.left=Math.random()*100+"vw";
+        piece.style.left = Math.random() * 100 + "vw";
 
-        piece.style.top="-20px";
+        piece.style.top = "-20px";
 
-        piece.style.backgroundColor=`hsl(${Math.random()*360},100%,50%)`;
+        piece.style.background =
+        `hsl(${Math.random() * 360},100%,50%)`;
 
-        piece.style.borderRadius="50%";
+        piece.style.borderRadius = "50%";
 
-        piece.style.zIndex="9999";
+        piece.style.pointerEvents = "none";
 
-        piece.style.pointerEvents="none";
+        piece.style.zIndex = "9999";
 
-        piece.style.transition="transform 3s linear, opacity 3s";
+        piece.style.transition =
+        "transform 3s linear, opacity 3s";
 
         document.body.appendChild(piece);
 
-        setTimeout(()=>{
+        setTimeout(() => {
 
-            piece.style.transform=`translateY(${window.innerHeight+100}px)`;
+            piece.style.transform =
+            `translateY(${window.innerHeight + 100}px)`;
 
-            piece.style.opacity="0";
+            piece.style.opacity = "0";
 
-        },50);
+        }, 50);
 
-        setTimeout(()=>{
+        setTimeout(() => {
 
             piece.remove();
 
-        },3000);
+        }, 3000);
 
     }
 
 }
 
-const oldRender=renderTasks;
+window.onload = () => {
 
-renderTasks=function(list=tasks){
+    updateGreeting();
 
-    oldRender(list);
-
-    checkAllCompleted();
+    applyCurrentFilter();
 
 };
 
-window.onload=()=>{
+window.toggleTask = toggleTask;
+window.editTask = editTask;
+window.pinTask = pinTask;
+window.openDeleteModal = openDeleteModal;
+function sortPinnedTasks() {
 
-    renderTasks();
+    tasks.sort((a, b) => {
+
+        if (a.pinned !== b.pinned) {
+
+            return b.pinned - a.pinned;
+
+        }
+
+        const order = {
+
+            High: 3,
+
+            Medium: 2,
+
+            Low: 1
+
+        };
+
+        if (order[a.priority] !== order[b.priority]) {
+
+            return order[b.priority] - order[a.priority];
+
+        }
+
+        if (a.date === "" && b.date === "") return 0;
+
+        if (a.date === "") return 1;
+
+        if (b.date === "") return -1;
+
+        return new Date(a.date) - new Date(b.date);
+
+    });
+
+}
+
+const originalAddTask = addTask;
+
+addTask = function () {
+
+    originalAddTask();
+
+    sortPinnedTasks();
+
+    saveTasks();
+
+    applyCurrentFilter();
 
 };
 
-window.toggleTask=toggleTask;
-window.editTask=editTask;
-window.deleteTask=deleteTask;
-window.pinTask=pinTask;
+const originalToggleTask = toggleTask;
+
+toggleTask = function (id) {
+
+    originalToggleTask(id);
+
+    sortPinnedTasks();
+
+    saveTasks();
+
+    applyCurrentFilter();
+
+};
+
+const originalClearCompleted = clearCompleted;
+
+clearCompleted = function () {
+
+    originalClearCompleted();
+
+    sortPinnedTasks();
+
+    saveTasks();
+
+    applyCurrentFilter();
+
+};
+
+document.addEventListener("keydown", (e) => {
+
+    if (e.key === "Escape") {
+
+        deleteModal.classList.remove("show");
+
+    }
+
+});
+
+deleteModal.addEventListener("click", (e) => {
+
+    if (e.target === deleteModal) {
+
+        deleteModal.classList.remove("show");
+
+    }
+
+});
+
+sortPinnedTasks();
+
+applyCurrentFilter();
