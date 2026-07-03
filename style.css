@@ -796,3 +796,237 @@ select:focus{
 box-shadow:0 0 10px rgba(108,99,255,.4);
 
 }
+#greeting{
+    color:#f8fafc;
+    font-size:15px;
+    margin-top:6px;
+    opacity:.9;
+    font-weight:500;
+}
+
+.progress-text{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:10px;
+}
+
+#progressPercent{
+    font-size:15px;
+    font-weight:700;
+    color:#fff;
+}
+
+.progress-bar{
+    overflow:hidden;
+}
+
+#progress{
+    transition:width .6s ease;
+}
+
+.filters button.active-filter{
+    background:#6C63FF;
+    color:#fff;
+}
+
+footer{
+    text-align:center;
+    margin-top:30px;
+    color:white;
+    opacity:.9;
+    font-size:14px;
+    line-height:1.8;
+}
+
+footer strong{
+    color:#FFD43B;
+}
+
+.modal{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.45);
+    display:none;
+    justify-content:center;
+    align-items:center;
+    z-index:9999;
+    animation:fade .25s ease;
+}
+
+.modal.show{
+    display:flex;
+}
+
+.modal-content{
+    width:90%;
+    max-width:420px;
+    background:white;
+    border-radius:18px;
+    padding:30px;
+    text-align:center;
+    animation:popup .3s ease;
+}
+
+body.dark .modal-content{
+    background:#374151;
+    color:white;
+}
+
+.modal-content h2{
+    margin-bottom:12px;
+    color:#ef4444;
+}
+
+.modal-content p{
+    margin-bottom:25px;
+}
+
+.modal-buttons{
+    display:flex;
+    gap:15px;
+}
+
+.modal-buttons button{
+    flex:1;
+    padding:13px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    font-size:15px;
+    font-weight:600;
+}
+
+#cancelDelete{
+    background:#9ca3af;
+    color:white;
+}
+
+#confirmDelete{
+    background:#ef4444;
+    color:white;
+}
+
+#cancelDelete:hover{
+    background:#6b7280;
+}
+
+#confirmDelete:hover{
+    background:#dc2626;
+}
+.task.overdue{
+    border-left:6px solid #ef4444;
+}
+
+.task.today{
+    border-left:6px solid #f59e0b;
+}
+
+.task.future{
+    border-left:6px solid #22c55e;
+}
+
+.status-badge{
+    display:inline-block;
+    margin-top:8px;
+    padding:5px 12px;
+    border-radius:20px;
+    font-size:12px;
+    font-weight:600;
+    color:white;
+}
+
+.status-overdue{
+    background:#ef4444;
+}
+
+.status-today{
+    background:#f59e0b;
+}
+
+.status-future{
+    background:#22c55e;
+}
+
+.task-actions button:hover{
+    transform:scale(1.15);
+}
+
+#toast{
+    min-width:250px;
+    box-shadow:0 10px 25px rgba(0,0,0,.25);
+}
+
+.card{
+    transition:.35s;
+}
+
+.card:hover{
+    transform:translateY(-8px);
+}
+
+.progress-bar{
+    box-shadow:inset 0 0 8px rgba(0,0,0,.15);
+}
+
+@keyframes popup{
+
+    from{
+
+        transform:scale(.75);
+        opacity:0;
+
+    }
+
+    to{
+
+        transform:scale(1);
+        opacity:1;
+
+    }
+
+}
+
+@keyframes fade{
+
+    from{
+
+        opacity:0;
+
+    }
+
+    to{
+
+        opacity:1;
+
+    }
+
+}
+
+button:active{
+
+    transform:scale(.96);
+
+}
+
+@media(max-width:600px){
+
+    footer{
+
+        font-size:13px;
+
+    }
+
+    #greeting{
+
+        font-size:13px;
+
+    }
+
+    .modal-content{
+
+        padding:20px;
+
+    }
+
+}
